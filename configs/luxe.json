@@ -1,0 +1,18 @@
+{
+  "name": "Luxe",
+  "font_family": "Segoe UI Semibold",
+  "fallback_font": "Helvetica",
+  "text_transform": "none",
+  "primary_color": [245, 245, 245],
+  "accent_color": [0, 225, 204],
+  "stroke_color": [20, 20, 20],
+  "stroke_width_ratio": 0.008,
+  "letter_spacing": 2,
+  "vertical_position_ratio": 0.28,
+  "max_width_ratio": 0.80,
+  "animation": {
+    "type": "fade_slide",
+    "duration_ratio": 0.35,
+    "slide_distance_px": 25
+  }
+}
