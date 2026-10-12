@@ -1,0 +1,19 @@
+1
+00:00:00,390 --> 00:00:02,100
+Jo bhi tumne *COLLEGE*
+
+2
+00:00:02,100 --> 00:00:03,900
+padha hai *BHOOL* jao
+
+3
+00:00:03,900 --> 00:00:05,800
+is *JOB* mein
+
+4
+00:00:05,800 --> 00:00:07,960
+kabhi *COLLEGE* nahi gaya
+
+5
+00:00:08,200 --> 00:00:10,300
+nahi milegi *JOB* tumhe

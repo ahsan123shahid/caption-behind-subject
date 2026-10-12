@@ -4,4 +4,7 @@ __pycache__/
 .system_generated/
 *.tmp
 *.jpg
+*.mp4
 models/
+outputs/
+scratch/
