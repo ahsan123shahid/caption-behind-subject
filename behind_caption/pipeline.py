@@ -28,6 +28,19 @@ def _over(base: np.ndarray, layer) -> np.ndarray:
     return base * (1 - a) + arr[..., 2::-1] * a
 
 
+def _detect_head_y(alpha: np.ndarray, default_ratio: float = 0.19) -> float:
+    """Auto-detects top of head from mask, placing text behind head crown with sweet spot fallback."""
+    H = alpha.shape[0]
+    row_sums = np.sum(alpha > 0.45, axis=1)
+    valid_rows = np.where(row_sums > 25)[0]
+    if len(valid_rows) > 0:
+        top_y = float(valid_rows[0])
+        # Place text anchor around crown level (occluded by upper head)
+        anchor = np.clip(top_y + 0.10 * H, 0.12 * H, 0.35 * H)
+        return float(anchor)
+    return float(default_ratio * H)
+
+
 def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapipe",
         smooth: float = 0.5, crf: int = 18):
     tpl, cues, seg = get_template(template), parse_srt(srt), get_segmenter(segmenter)
@@ -36,6 +49,7 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
     rend = CaptionRenderer(tpl, W, H)
     ffmpeg_bin = _get_ffmpeg_bin()
+    default_y_ratio = tpl.get("keyword", {}).get("y_ratio", 0.19)
 
     ff = subprocess.Popen([
         ffmpeg_bin, "-y", "-loglevel", "error",
@@ -44,7 +58,7 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
         "-c:v", "libx264", "-preset", "medium", "-crf", str(crf), "-pix_fmt", "yuv420p",
         "-c:a", "copy", "-shortest", out], stdin=subprocess.PIPE)
 
-    prev, i = None, 0
+    prev, smoothed_head_y, i = None, None, 0
     while True:
         ok, frame = cap.read()
         if not ok:
@@ -55,6 +69,7 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
         if cue is None:                      # no caption -> skip segmentation (fast path)
             ff.stdin.write(frame.tobytes())
             prev = None
+            smoothed_head_y = None
             continue
 
         alpha = seg.mask(frame)
@@ -62,7 +77,14 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
             alpha = smooth * prev + (1 - smooth) * alpha
         prev = alpha
 
-        behind, front = rend.render(cue, t)
+        # Auto-Head Tracking with smooth damping
+        target_head_y = _detect_head_y(alpha, default_y_ratio)
+        if smoothed_head_y is None:
+            smoothed_head_y = target_head_y
+        else:
+            smoothed_head_y = 0.85 * smoothed_head_y + 0.15 * target_head_y
+
+        behind, front = rend.render(cue, t, head_y=smoothed_head_y)
         f = frame.astype(np.float32)
         comp = _over(f, behind)                       # background -> text
         m = alpha[..., None]

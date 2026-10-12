@@ -84,6 +84,15 @@ class CaptionRenderer:
         if pill:
             d.rounded_rectangle([0, 0, img.width - 1, img.height - 1],
                                 radius=int(pill["radius"] * size), fill=_rgb(pill["color"]))
+        sh = cfg.get("shadow")
+        if sh:
+            ox = int(sh.get("ox", 0.03) * size)
+            oy = int(sh.get("oy", 0.05) * size)
+            scolor = _rgb(sh.get("color", "#000000"))
+            s_alpha = int(255 * sh.get("alpha", 0.7))
+            d.text((px - bb[0] + ox, py - bb[1] + oy), text, font=f, fill=(scolor[0], scolor[1], scolor[2], s_alpha),
+                   stroke_width=sw, stroke_fill=(0, 0, 0, s_alpha) if st else None)
+
         d.text((px - bb[0], py - bb[1]), text, font=f, fill=_rgb(cfg["color"]),
                stroke_width=sw, stroke_fill=_rgb(st["color"]) if st else None)
         grad = cfg.get("gradient")  # [top_color, bottom_color] vertical fill
@@ -122,7 +131,7 @@ class CaptionRenderer:
             img.putalpha(img.getchannel("A").point(lambda v: int(v * alpha)))
         layer.alpha_composite(img, (int(cx - img.width / 2), int(cy - img.height / 2)))
 
-    def render(self, cue: Cue, t: float):
+    def render(self, cue: Cue, t: float, head_y: float = None):
         """Return (behind_layer, front_layer) as RGBA PIL images."""
         p = self._prep.setdefault(id(cue), _Prepared(cue))
         K, S = self.t["keyword"], self.t["support"]
@@ -135,7 +144,7 @@ class CaptionRenderer:
         kw_text = kw_text.upper() if K.get("uppercase") else kw_text
         kw_in = p.times[p.kw] if wbw else cue.start
         kimg = self._text_img(kw_text, self._fit(("k", id(cue)), kw_text, K), "keyword")
-        ky = K["y_ratio"] * self.H
+        ky = head_y if head_y is not None else (K.get("y_ratio", 0.19) * self.H)
         if t >= kw_in:
             s, a, dy = self._anim(t - kw_in, to_end)
             self._paste(layers[K["behind"]], kimg, self.W / 2, ky + dy, s, a)

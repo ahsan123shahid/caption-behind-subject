@@ -1,29 +1,46 @@
 {
   "name": "dynamic",
   "keyword": {
-    "font": "fonts/Anton-Regular.ttf",
-    "size_ratio": 0.22,
-    "max_width_ratio": 0.92,
-    "color": "#FFFFFF",
+    "font": "fonts/PlusJakartaSans-800-normal.ttf",
+    "size_ratio": 0.24,
+    "max_width_ratio": 0.94,
+    "color": "#FF6B00",
     "uppercase": true,
-    "y_ratio": 0.22,
+    "y_ratio": 0.18,
     "behind": true,
-    "pill": {
-      "color": "#FF6A00",
-      "pad_x": 0.22,
-      "pad_y": 0.1,
-      "radius": 0.22
+    "gradient": [
+      "#FF6B00",
+      "#B51A00"
+    ],
+    "stroke": {
+      "width": 0.015,
+      "color": "#3B0500"
+    },
+    "shadow": {
+      "ox": 0.02,
+      "oy": 0.04,
+      "color": "#000000",
+      "alpha": 0.6
     }
   },
   "support": {
-    "font": "fonts/Poppins-SemiBold.ttf",
+    "font": "fonts/Montserrat-700-normal.ttf",
     "size_ratio": 0.065,
     "max_width_ratio": 0.85,
     "color": "#FFFFFF",
     "uppercase": false,
     "behind": false,
     "gap_ratio": 0.03,
-    "stroke": null
+    "stroke": {
+      "width": 0.025,
+      "color": "#111111"
+    },
+    "shadow": {
+      "ox": 0.02,
+      "oy": 0.03,
+      "color": "#000000",
+      "alpha": 0.7
+    }
   },
   "animation": {
     "type": "pop",

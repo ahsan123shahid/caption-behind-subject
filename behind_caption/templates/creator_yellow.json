@@ -1,0 +1,47 @@
+{
+  "name": "creator_yellow",
+  "keyword": {
+    "font": "fonts/BebasNeue-Regular.ttf",
+    "size_ratio": 0.28,
+    "max_width_ratio": 0.95,
+    "color": "#FFD600",
+    "uppercase": true,
+    "y_ratio": 0.18,
+    "behind": true,
+    "stroke": {
+      "width": 0.02,
+      "color": "#1A1A1A"
+    },
+    "shadow": {
+      "ox": 0.02,
+      "oy": 0.04,
+      "color": "#000000",
+      "alpha": 0.6
+    }
+  },
+  "support": {
+    "font": "fonts/Caveat-Bold.ttf",
+    "size_ratio": 0.09,
+    "max_width_ratio": 0.85,
+    "color": "#FFFFFF",
+    "uppercase": false,
+    "behind": false,
+    "gap_ratio": 0.02,
+    "stroke": {
+      "width": 0.03,
+      "color": "#111111"
+    },
+    "shadow": {
+      "ox": 0.02,
+      "oy": 0.03,
+      "color": "#000000",
+      "alpha": 0.7
+    }
+  },
+  "animation": {
+    "type": "pop",
+    "duration": 0.18,
+    "word_by_word": true,
+    "out_duration": 0.12
+  }
+}
