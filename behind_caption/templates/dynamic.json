@@ -1,0 +1,34 @@
+{
+  "name": "dynamic",
+  "keyword": {
+    "font": "fonts/Anton-Regular.ttf",
+    "size_ratio": 0.22,
+    "max_width_ratio": 0.92,
+    "color": "#FFFFFF",
+    "uppercase": true,
+    "y_ratio": 0.3,
+    "behind": true,
+    "pill": {
+      "color": "#FF6A00",
+      "pad_x": 0.22,
+      "pad_y": 0.1,
+      "radius": 0.22
+    }
+  },
+  "support": {
+    "font": "fonts/Poppins-SemiBold.ttf",
+    "size_ratio": 0.045,
+    "max_width_ratio": 0.9,
+    "color": "#FFFFFF",
+    "uppercase": false,
+    "behind": false,
+    "gap_ratio": 0.025,
+    "stroke": null
+  },
+  "animation": {
+    "type": "pop",
+    "duration": 0.18,
+    "word_by_word": true,
+    "out_duration": 0.12
+  }
+}

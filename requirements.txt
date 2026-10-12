@@ -1,5 +1,5 @@
-mediapipe>=1.1.0
-opencv-python>=4.8.0
-pillow>=10.0.0
-numpy>=1.24.0
-tqdm>=4.65.0
+numpy
+opencv-python-headless
+Pillow>=10.1
+mediapipe
+# optional: pip install rembg onnxruntime   (for --segmenter rembg)

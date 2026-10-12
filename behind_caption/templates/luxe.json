@@ -1,0 +1,36 @@
+{
+  "name": "luxe",
+  "keyword": {
+    "font": "fonts/Poppins-Bold.ttf",
+    "size_ratio": 0.19,
+    "max_width_ratio": 0.88,
+    "color": "#19D3DA",
+    "uppercase": false,
+    "y_ratio": 0.3,
+    "behind": true,
+    "gradient": [
+      "#4FE3E8",
+      "#117E86"
+    ]
+  },
+  "support": {
+    "font": "fonts/Poppins-LightItalic.ttf",
+    "size_ratio": 0.05,
+    "max_width_ratio": 0.8,
+    "color": "#FFFFFF",
+    "uppercase": false,
+    "behind": false,
+    "gap_ratio": 0.02,
+    "stroke": {
+      "width": 0.03,
+      "color": "#0A2A2D"
+    }
+  },
+  "animation": {
+    "type": "fade_slide",
+    "duration": 0.45,
+    "word_by_word": false,
+    "out_duration": 0.3,
+    "slide_ratio": 0.04
+  }
+}
