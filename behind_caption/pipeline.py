@@ -21,6 +21,25 @@ def _get_ffmpeg_bin() -> str:
         return "ffmpeg"
 
 
+def _blend_estate_texture(base_bgr: np.ndarray, text_layer, blend_strength: float = 0.40):
+    """Infuses video luminance texture into text layer for Whitestair's iconic organic textured look."""
+    from PIL import Image
+    arr = np.asarray(text_layer, dtype=np.float32).copy()
+    a = arr[..., 3]
+    text_mask = a > 15
+    if not np.any(text_mask):
+        return text_layer
+
+    # Video background luminance in BGR: 0.114*B + 0.587*G + 0.299*R
+    lum = (0.114 * base_bgr[..., 0] + 0.587 * base_bgr[..., 1] + 0.299 * base_bgr[..., 2]) / 255.0
+    # Normalized contrast curve
+    texture = np.clip(0.5 + (lum - 0.4) * 1.3, 0.45, 1.45)[..., None]
+    
+    # Apply texture multiplier only where text exists
+    arr[..., :3] = np.where(text_mask[..., None], np.clip(arr[..., :3] * texture, 0, 255), arr[..., :3])
+    return Image.fromarray(arr.astype(np.uint8), mode="RGBA")
+
+
 def _over(base: np.ndarray, layer) -> np.ndarray:
     """Alpha-composite an RGBA PIL layer (RGB order) onto a BGR float frame."""
     arr = np.asarray(layer, dtype=np.float32)
@@ -85,6 +104,8 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
             smoothed_head_y = 0.85 * smoothed_head_y + 0.15 * target_head_y
 
         behind, front = rend.render(cue, t, head_y=smoothed_head_y)
+        if tpl.get("blend_texture", True):
+            behind = _blend_estate_texture(frame, behind, blend_strength=tpl.get("blend_strength", 0.40))
         f = frame.astype(np.float32)
         comp = _over(f, behind)                       # background -> text
         m = alpha[..., None]

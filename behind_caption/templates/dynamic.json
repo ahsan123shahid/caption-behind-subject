@@ -1,31 +1,33 @@
 {
   "name": "dynamic",
+  "blend_texture": true,
+  "blend_strength": 0.45,
   "keyword": {
     "font": "fonts/PlusJakartaSans-800-normal.ttf",
-    "size_ratio": 0.24,
+    "size_ratio": 0.25,
     "max_width_ratio": 0.94,
-    "color": "#FF6B00",
-    "uppercase": true,
+    "color": "#FF7A00",
+    "uppercase": false,
     "y_ratio": 0.18,
     "behind": true,
     "gradient": [
-      "#FF6B00",
+      "#FF8A00",
       "#B51A00"
     ],
     "stroke": {
-      "width": 0.015,
-      "color": "#3B0500"
+      "width": 0.012,
+      "color": "#3B0800"
     },
     "shadow": {
       "ox": 0.02,
       "oy": 0.04,
       "color": "#000000",
-      "alpha": 0.6
+      "alpha": 0.65
     }
   },
   "support": {
     "font": "fonts/Montserrat-700-normal.ttf",
-    "size_ratio": 0.065,
+    "size_ratio": 0.075,
     "max_width_ratio": 0.85,
     "color": "#FFFFFF",
     "uppercase": false,
@@ -39,7 +41,7 @@
       "ox": 0.02,
       "oy": 0.03,
       "color": "#000000",
-      "alpha": 0.7
+      "alpha": 0.75
     }
   },
   "animation": {
