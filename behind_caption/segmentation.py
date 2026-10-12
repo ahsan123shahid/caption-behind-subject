@@ -103,3 +103,27 @@ class DummySegmenter(Segmenter):
         m = np.zeros((h, w), np.float32)
         cv2.ellipse(m, (w // 2, int(h * .6)), (int(w * .18), int(h * .45)), 0, 0, 360, 1.0, -1)
         return cv2.GaussianBlur(m, (0, 0), 3)
+
+
+@register("yolo")
+class YOLOSegmenter(Segmenter):
+    """Ultralytics YOLOv8-seg person segmenter for ultra-sharp cutouts matching Whitestair production stack."""
+    def __init__(self, model_name: str = "yolov8n-seg.pt", conf: float = 0.35):
+        from ultralytics import YOLO
+        self.model = YOLO(model_name)
+        self.conf = conf
+
+    def mask(self, bgr: np.ndarray) -> np.ndarray:
+        h, w = bgr.shape[:2]
+        # Predict person class (class 0 = person)
+        res = self.model.predict(bgr, conf=self.conf, classes=[0], verbose=False)
+        if res and len(res) > 0 and res[0].masks is not None:
+            m = np.zeros((h, w), dtype=np.float32)
+            for mask_data in res[0].masks.data:
+                m_np = mask_data.cpu().numpy()
+                if m_np.shape != (h, w):
+                    m_np = cv2.resize(m_np, (w, h), interpolation=cv2.INTER_LINEAR)
+                m = np.maximum(m, m_np)
+            return cv2.GaussianBlur(m, (3, 3), 0)
+        return np.ones((h, w), dtype=np.float32)
+

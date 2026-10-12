@@ -47,17 +47,17 @@ def _over(base: np.ndarray, layer) -> np.ndarray:
     return base * (1 - a) + arr[..., 2::-1] * a
 
 
-def _detect_head_y(alpha: np.ndarray, default_ratio: float = 0.19) -> float:
-    """Auto-detects top of head from mask, placing text behind head crown with sweet spot fallback."""
-    H = alpha.shape[0]
-    row_sums = np.sum(alpha > 0.45, axis=1)
-    valid_rows = np.where(row_sums > 25)[0]
-    if len(valid_rows) > 0:
-        top_y = float(valid_rows[0])
-        # Place text anchor around crown level (occluded by upper head)
-        anchor = np.clip(top_y + 0.10 * H, 0.12 * H, 0.35 * H)
-        return float(anchor)
-    return float(default_ratio * H)
+def _detect_head_anchor(alpha: np.ndarray, default_ratio: float = 0.22) -> tuple:
+    """Auto-detects center and crown of subject head from mask so text naturally centers on the person."""
+    H, W = alpha.shape
+    upper_mask = alpha[:int(0.55 * H), :] > 0.40
+    if np.any(upper_mask):
+        rows, cols = np.where(upper_mask)
+        top_y = float(np.min(rows))
+        anchor_y = float(np.clip(top_y + 0.12 * H, 0.15 * H, 0.38 * H))
+        anchor_x = float(np.clip(np.median(cols), 0.25 * W, 0.75 * W))
+        return anchor_x, anchor_y
+    return float(0.5 * W), float(default_ratio * H)
 
 
 def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapipe",
@@ -102,13 +102,14 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
         prev = alpha
 
         # Auto-Head Tracking with smooth damping
-        target_head_y = _detect_head_y(alpha, default_y_ratio)
+        target_x, target_y = _detect_head_anchor(alpha, default_y_ratio)
         if smoothed_head_y is None:
-            smoothed_head_y = target_head_y
+            smoothed_head_x, smoothed_head_y = target_x, target_y
         else:
-            smoothed_head_y = 0.85 * smoothed_head_y + 0.15 * target_head_y
+            smoothed_head_x = 0.85 * smoothed_head_x + 0.15 * target_x
+            smoothed_head_y = 0.85 * smoothed_head_y + 0.15 * target_y
 
-        behind, front = rend.render(cue, t, head_y=smoothed_head_y)
+        behind, front = rend.render(cue, t, head_x=smoothed_head_x, head_y=smoothed_head_y)
         if tpl.get("blend_texture", True):
             behind = _blend_estate_texture(frame, behind, blend_strength=tpl.get("blend_strength", 0.40))
         f = frame.astype(np.float32)
