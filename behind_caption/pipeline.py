@@ -77,11 +77,16 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
         "-c:v", "libx264", "-preset", "medium", "-crf", str(crf), "-pix_fmt", "yuv420p",
         "-c:a", "copy", "-shortest", out], stdin=subprocess.PIPE)
 
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    from tqdm import tqdm
+    pbar = tqdm(total=total_frames, desc=f"[{template}] Rendering", unit="frame")
+
     prev, smoothed_head_y, i = None, None, 0
     while True:
         ok, frame = cap.read()
         if not ok:
             break
+        pbar.update(1)
         t = i / fps
         i += 1
         cue = next((c for c in cues if c.start <= t < c.end), None)
@@ -114,6 +119,7 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
         ff.stdin.write(np.clip(comp, 0, 255).astype(np.uint8).tobytes())
 
     cap.release()
+    pbar.close()
     ff.stdin.close()
     ff.wait()
     print(f"[{template}] done -> {out}")
