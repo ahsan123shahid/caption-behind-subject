@@ -7,6 +7,20 @@ from .segmentation import get_segmenter
 from .templates import get_template
 
 
+import shutil
+
+
+def _get_ffmpeg_bin() -> str:
+    bin_path = shutil.which("ffmpeg")
+    if bin_path:
+        return bin_path
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"
+
+
 def _over(base: np.ndarray, layer) -> np.ndarray:
     """Alpha-composite an RGBA PIL layer (RGB order) onto a BGR float frame."""
     arr = np.asarray(layer, dtype=np.float32)
@@ -21,9 +35,10 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
     W, H = int(cap.get(3)), int(cap.get(4))
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
     rend = CaptionRenderer(tpl, W, H)
+    ffmpeg_bin = _get_ffmpeg_bin()
 
     ff = subprocess.Popen([
-        "ffmpeg", "-y", "-loglevel", "error",
+        ffmpeg_bin, "-y", "-loglevel", "error",
         "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
         "-i", video, "-map", "0:v", "-map", "1:a?",
         "-c:v", "libx264", "-preset", "medium", "-crf", str(crf), "-pix_fmt", "yuv420p",

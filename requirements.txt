@@ -2,4 +2,5 @@ numpy
 opencv-python-headless
 Pillow>=10.1
 mediapipe
+imageio-ffmpeg>=0.5.0
 # optional: pip install rembg onnxruntime   (for --segmenter rembg)

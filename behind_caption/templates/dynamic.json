@@ -6,7 +6,7 @@
     "max_width_ratio": 0.92,
     "color": "#FFFFFF",
     "uppercase": true,
-    "y_ratio": 0.3,
+    "y_ratio": 0.22,
     "behind": true,
     "pill": {
       "color": "#FF6A00",
@@ -17,12 +17,12 @@
   },
   "support": {
     "font": "fonts/Poppins-SemiBold.ttf",
-    "size_ratio": 0.045,
-    "max_width_ratio": 0.9,
+    "size_ratio": 0.065,
+    "max_width_ratio": 0.85,
     "color": "#FFFFFF",
     "uppercase": false,
     "behind": false,
-    "gap_ratio": 0.025,
+    "gap_ratio": 0.03,
     "stroke": null
   },
   "animation": {
