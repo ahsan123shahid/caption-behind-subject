@@ -27,9 +27,20 @@ class Segmenter(ABC):
         """Return float32 alpha matte HxW in [0,1] (1 = person)."""
 
 
-def _soften(m: np.ndarray, lo=0.35, hi=0.75) -> np.ndarray:
-    m = np.clip((m - lo) / (hi - lo), 0, 1)
-    return m * m * (3 - 2 * m)  # smoothstep -> cleaner edges
+def _clean_matte(m: np.ndarray, thresh: float = 0.22) -> np.ndarray:
+    """
+    Produces clean, solid foreground matte with smooth anti-aliased edge:
+    1. Lower threshold (0.22) captures hats, accessories, and fine hair without dropouts.
+    2. Morphological closing seals small internal mask holes.
+    3. Slight dilation ensures subject silhouette cleanly covers the behind text boundary.
+    4. Sub-pixel Gaussian anti-aliasing eliminates harsh pixelation and prevents color bleeding.
+    """
+    binary = (m > thresh).astype(np.uint8)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+    dilated = cv2.dilate(closed, kernel, iterations=1)
+    matte = cv2.GaussianBlur(dilated.astype(np.float32), (5, 5), 1.2)
+    return np.clip(matte, 0.0, 1.0)
 
 
 MODEL_URL = "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite"
@@ -68,7 +79,7 @@ class MediaPipeSegmenter(Segmenter):
 
         if self.mode == "legacy":
             res = self.seg.process(rgb)
-            return _soften(res.segmentation_mask.astype(np.float32))
+            return _clean_matte(res.segmentation_mask.astype(np.float32))
 
         # MediaPipe Tasks API
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
@@ -77,7 +88,7 @@ class MediaPipeSegmenter(Segmenter):
             raw_mask = result.confidence_masks[0].numpy_view()
             if raw_mask.ndim == 3 and raw_mask.shape[-1] == 1:
                 raw_mask = raw_mask.squeeze(-1)
-            return _soften(raw_mask.astype(np.float32))
+            return _clean_matte(raw_mask.astype(np.float32))
 
         h, w = bgr.shape[:2]
         return np.ones((h, w), dtype=np.float32)
