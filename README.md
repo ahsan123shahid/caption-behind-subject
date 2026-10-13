@@ -42,6 +42,14 @@ pip install -r requirements.txt
 ```
 *(Requires `ffmpeg` installed on your system PATH).*
 
+### Optional: Cloud Acceleration with Groq API
+For near-instant speech transcription (<2s) with Whisper-Large-v3, set your Groq key (or add to `.env`):
+```bash
+export GROQ_API_KEY="your_groq_key"       # Linux/macOS
+set GROQ_API_KEY=your_groq_key            # Windows
+```
+*(If no API key is set, the system automatically falls back to local Whisper).*
+
 ---
 
 ## Usage
