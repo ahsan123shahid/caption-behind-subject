@@ -160,9 +160,9 @@ class CaptionRenderer:
 
     def render(self, cue: Cue, t: float, head_x: float = None, head_y: float = None):
         """
-        Renders Whitestair-style multi-layer layout:
-        - Behind Subject: Large Upper Keyword (Anton Orange) + Center Pill + Large Lower Keyword (Anton Orange)
-        - Front Overlay: Support context words (White text)
+        Renders Hero Text Pop layout (matching Bolti.ai / Submagic / reference style):
+        - Behind Subject: Giant Bold Hero Keyword popped behind the head/upper body
+        - Front Overlay: Clean support subtitle text at bottom
         """
         behind_layer = Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0))
         front_layer = Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0))
@@ -171,99 +171,65 @@ class CaptionRenderer:
         to_end = max(0.0, cue.end - t)
         scale, alpha, dy = self._anim_values(t_in, to_end)
 
-        words = cue.text.strip().split()
-        if not words:
+        raw_text = cue.text.strip()
+        if not raw_text:
             return behind_layer, front_layer
 
         K = self.t.get("keyword", {})
         S = self.t.get("support", {})
 
-        center_x = int(head_x) if head_x is not None else (self.W // 2)
-        base_head_y = head_y if head_y is not None else int(0.24 * self.H)
+        # Extract forced hero keyword from *...* markers
+        forced = [f.strip() for f in re.findall(r'\*([^*]+)\*', raw_text) if f.strip()]
+        plain_text = re.sub(r'\*[^*]+\*', '', raw_text).strip()
+        plain_text = re.sub(r'\s+', ' ', plain_text)
 
-        # Estate Dynamic Layout (Matching Whitestair)
-        if self.t.get("layout") == "estate_dynamic":
-            raw_text = cue.text.strip()
-            forced = [f.strip() for f in re.findall(r'\*([^*]+)\*', raw_text) if f.strip()]
-            plain_text = re.sub(r'\*[^*]+\*', '', raw_text)
-            plain = [p.strip() for p in plain_text.split() if p.strip()]
-
-            if len(forced) >= 2:
-                top_kw = forced[0].upper()
-                bot_kw = forced[1].upper()
-                pill_word = plain[0].lower() if plain else "real"
-            elif len(forced) == 1:
-                top_kw = forced[0].upper()
-                if len(plain) >= 2:
-                    pill_word = plain[0].lower()
-                    bot_kw = " ".join(plain[1:]).upper()
-                elif len(plain) == 1:
-                    pill_word = plain[0].lower()
-                    bot_kw = ""
-                else:
-                    pill_word = ""
-                    bot_kw = ""
+        if forced:
+            hero_kw = forced[0]
+            supp_text = plain_text
+        else:
+            words = raw_text.split()
+            if len(words) <= 1:
+                hero_kw = raw_text
+                supp_text = ""
             else:
-                # Distribute words: 1st word top, 2nd pill, remaining bottom
-                if len(plain) == 1:
-                    top_kw, pill_word, bot_kw = plain[0].upper(), "", ""
-                elif len(plain) == 2:
-                    top_kw, pill_word, bot_kw = plain[0].upper(), plain[1].lower(), ""
-                else:
-                    top_kw = plain[0].upper()
-                    pill_word = plain[1].lower()
-                    bot_kw = " ".join(plain[2:]).upper()
+                # Pick longest significant word as hero keyword
+                hero_kw = max(words, key=lambda w: len(_clean(w)))
+                supp_text = " ".join([w for w in words if w != hero_kw])
 
-            # 1. Render Top Bold Word (Behind Head)
-            if top_kw:
-                size_top = self._fit(top_kw, K["font"], K.get("size_ratio", 0.13), K.get("max_width_ratio", 0.88))
-                img_top = self._draw_bold_text(top_kw, size_top, K)
-                pos_y = base_head_y - int(0.03 * self.H) + dy
-                self._paste(behind_layer, img_top, center_x, pos_y, scale, alpha)
+        if K.get("uppercase", True):
+            hero_kw = hero_kw.upper()
+        if S.get("uppercase", False):
+            supp_text = supp_text.upper()
 
-            # 2. Render Center Pill Badge
-            if pill_word:
-                pill_size = int(0.036 * self.H)
-                img_pill = self._draw_pill(pill_word, pill_size)
-                pos_y = base_head_y + int(0.11 * self.H) + dy
-                self._paste(behind_layer, img_pill, center_x, pos_y, scale, alpha)
+        # 1. Render Hero Keyword Behind Head
+        if hero_kw:
+            k_size = self._fit(hero_kw, K["font"], K.get("size_ratio", 0.22), K.get("max_width_ratio", 0.94))
+            kimg = self._draw_bold_text(hero_kw, k_size, K)
 
-            # 3. Render Bottom Bold Word (Behind Chest/Shoulders)
-            if bot_kw:
-                size_bot = self._fit(bot_kw, K["font"], K.get("size_ratio", 0.13), K.get("max_width_ratio", 0.88))
-                img_bot = self._draw_bold_text(bot_kw, size_bot, K)
-                pos_y = base_head_y + int(0.20 * self.H) + dy
-                self._paste(behind_layer, img_bot, center_x, pos_y, scale, alpha)
+            # Center Y: positioned so bottom edge just touches/overlaps the head crown
+            if head_y is not None:
+                ky = int(head_y - (kimg.height * 0.32)) + dy
+            else:
+                ky = int(K.get("y_ratio", 0.18) * self.H) + dy
 
-            # 4. Context words on top-left and top-right (front overlay)
-            if len(plain) >= 2:
-                ctx_left = plain[0].lower()
-                ctx_right = plain[1].lower() if len(plain) > 1 else ""
-                s_size = int(S.get("size_ratio", 0.045) * self.H)
-                img_l = self._draw_bold_text(ctx_left, s_size, S)
-                pos_l_x = max(int(img_l.width // 2 + 10), center_x - int(0.26 * self.W))
-                self._paste(front_layer, img_l, pos_l_x, base_head_y - int(0.12 * self.H) + dy, 1.0, alpha)
+            # Center X:
+            # If text is wide (> 60% of frame), center on frame so it fills screen symmetrically
+            # Otherwise track speaker's head position
+            if kimg.width > int(0.60 * self.W) or head_x is None:
+                kx = self.W // 2
+            else:
+                margin = kimg.width // 2 + 20
+                kx = max(margin, min(self.W - margin, int(head_x)))
 
-                if ctx_right:
-                    img_r = self._draw_bold_text(ctx_right, s_size, S)
-                    pos_r_x = min(int(self.W - img_r.width // 2 - 10), center_x + int(0.26 * self.W))
-                    self._paste(front_layer, img_r, pos_r_x, base_head_y - int(0.12 * self.H) + dy, 1.0, alpha)
+            self._paste(behind_layer, kimg, kx, ky, scale, alpha)
 
-            return behind_layer, front_layer
-
-        # Fallback for other single-keyword templates (luxe, editorial, etc.)
-        raw_kw = words[-1]
-        kw_text = raw_kw.upper() if K.get("uppercase") else raw_kw
-        k_size = self._fit(kw_text, K["font"], K.get("size_ratio", 0.16), K.get("max_width_ratio", 0.85))
-        kimg = self._draw_bold_text(kw_text, k_size, K)
-        ky = base_head_y + dy
-        self._paste(behind_layer, kimg, center_x, ky, scale, alpha)
-
-        if len(words) > 1:
-            supp_text = " ".join(words[:-1])
-            s_size = self._fit(supp_text, S["font"], S.get("size_ratio", 0.05), S.get("max_width_ratio", 0.80))
+        # 2. Render Support Subtitle in Front at Bottom
+        if supp_text:
+            s_size = self._fit(supp_text, S["font"], S.get("size_ratio", 0.048), S.get("max_width_ratio", 0.85))
             simg = self._draw_bold_text(supp_text, s_size, S)
-            sy = ky - kimg.height // 2 - int(0.04 * self.H)
-            self._paste(front_layer, simg, center_x, sy, 1.0, alpha)
+            sy = int(S.get("y_ratio", 0.90) * self.H)
+            sx = self.W // 2
+            self._paste(front_layer, simg, sx, sy, 1.0, alpha)
 
         return behind_layer, front_layer
+

@@ -47,16 +47,15 @@ def _over(base: np.ndarray, layer) -> np.ndarray:
     return base * (1 - a) + arr[..., 2::-1] * a
 
 
-def _detect_head_anchor(alpha: np.ndarray, default_ratio: float = 0.22) -> tuple:
-    """Auto-detects center and crown of subject head from mask so text naturally centers on the person."""
+def _detect_head_anchor(alpha: np.ndarray, default_ratio: float = 0.20) -> tuple:
+    """Auto-detects center X and top crown Y of subject head from mask."""
     H, W = alpha.shape
     upper_mask = alpha[:int(0.55 * H), :] > 0.40
     if np.any(upper_mask):
         rows, cols = np.where(upper_mask)
         top_y = float(np.min(rows))
-        anchor_y = float(np.clip(top_y + 0.12 * H, 0.15 * H, 0.38 * H))
         anchor_x = float(np.clip(np.median(cols), 0.25 * W, 0.75 * W))
-        return anchor_x, anchor_y
+        return anchor_x, top_y
     return float(0.5 * W), float(default_ratio * H)
 
 
@@ -81,7 +80,7 @@ def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapi
     from tqdm import tqdm
     pbar = tqdm(total=total_frames, desc=f"[{template}] Rendering", unit="frame")
 
-    prev, smoothed_head_y, i = None, None, 0
+    prev, smoothed_head_x, smoothed_head_y, i = None, None, None, 0
     while True:
         ok, frame = cap.read()
         if not ok:

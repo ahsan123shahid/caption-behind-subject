@@ -1,34 +1,69 @@
 # Caption Behind the Subject
 
-Text sits **behind** the person: `background → text → person (mask) → optional front text`.
+A modular, backend video processing pipeline that renders stylized captions **behind the subject** (`background → text layer → segmented subject on top → optional front subtitles`), creating a depth / 3D look.
 
-## Run
-```bash
-pip install -r requirements.txt        # needs ffmpeg on PATH
-python fonts/download_fonts.py
-python -m behind_caption talk.mp4 --srt talk.srt --template all --out outputs/   # both demos
-python -m behind_caption talk.mp4 --srt talk.srt --template luxe --out luxe.mp4
+Built for **Roosh Tech / bolti.ai** task requirements.
+
+---
+
+## Features
+- **3D Depth Occlusion**: Text sits behind the subject so the person's head/body naturally occludes it.
+- **Auto-Head Tracking**: Automatically tracks the subject's crown position so text aligns with the person and bottom edges naturally touch/tuck behind the subject.
+- **2 Ready-to-Use Templates**:
+  - `dynamic` — Bold & energetic: Heavy condensed uppercase font (`Anton`), vibrant yellow/orange pop animation with bounce overshoot.
+  - `luxe` — Elegant & premium: Refined semi-bold sans (`Montserrat`), cool cyan/teal accent with smooth fade & slide.
+- **Swappable Segmentation**: Modular architecture supports `mediapipe` (fast CPU), `yolo` (YOLOv8 segmentation), `rembg`, and `dummy`.
+- **Zero-Lag Speech Sync**: Exact speech alignment powered by OpenAI Whisper word timestamps.
+- **Data-Driven**: Fully configured via JSON files in `behind_caption/templates/`. Add new templates without touching code.
+
+---
+
+## Project Structure
+```text
+behind_caption/
+├── cli.py             # CLI entrypoint (--video, --srt, --template, --segmenter)
+├── pipeline.py        # Frame-by-frame compositing loop, FFmpeg stream pipe
+├── renderer.py        # Text layout engine, auto-fitting, pop/slide animations
+├── segmentation.py    # Swappable segmenter registry (mediapipe, yolo, rembg)
+├── captions.py        # SRT parser with millisecond precision
+└── templates/         # JSON style configurations
+    ├── dynamic.json   # Template 1: Dynamic (Bold / Energetic)
+    └── luxe.json      # Template 2: Luxe (Elegant / Premium)
 ```
-Options: `--segmenter mediapipe|rembg|dummy`, `--smooth 0.5` (temporal mask smoothing).
-In the SRT, wrap a word in `*stars*` to force it as the keyword; otherwise the longest word is used.
 
-## Structure
-- `segmentation.py` – `Segmenter` interface + registry. Add RVM/GPU model = one new class with `@register("rvm")`.
-- `templates/*.json` – font, colours, size ratios, pill, stroke, `behind` flag, animation (`pop`, `fade_slide`). New template = new JSON.
-- `renderer.py` – auto-fit text to video size, animations, two layers (behind / front).
-- `pipeline.py` – frame loop, compositing, FFmpeg encode with original audio copied. Frames without a caption skip segmentation.
+---
 
-## Templates
+## Installation
 
-### Dynamic (Estate Dynamic)
-- Bold uppercase keyword in orange pill badge, behind subject
-- White support text in front
-- Word-by-word pop animation with overshoot easing
+1. **Install requirements** (Python 3.10+):
+```bash
+pip install -r requirements.txt
+```
+*(Requires `ffmpeg` installed on your system PATH).*
 
-### Luxe (Elegant)
-- Teal gradient keyword (Poppins Bold) behind subject
-- White italic support text (Poppins Light Italic) in front
-- Smooth fade + upward slide animation
+---
 
-## Notes
-Best with one person, good contrast. Keyword is placed at `y_ratio` (0.30 = upper-centre) so the subject occludes its middle.
+## Usage
+
+### 1. Render Dynamic Template
+```bash
+python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template dynamic --out output_dynamic.mp4
+```
+
+### 2. Render Luxe Template
+```bash
+python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template luxe --out output_luxe.mp4
+```
+
+### 3. Render All Templates in One Command
+```bash
+python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template all --out outputs/
+```
+
+### Options
+- `--template`: `dynamic`, `luxe`, or `all` (default: `dynamic`)
+- `--segmenter`: `mediapipe`, `yolo`, `rembg` (default: `mediapipe`)
+- `--smooth`: Temporal mask smoothing factor (default: `0.5`)
+- `--crf`: Video quality factor (default: `18`)
+
+In the SRT file, wrap a keyword in `*asterisks*` (e.g. `yaar *1 MILLION* followers`) to designate it as the hero keyword behind the subject. Any remaining words appear cleanly as front subtitle text at the bottom.

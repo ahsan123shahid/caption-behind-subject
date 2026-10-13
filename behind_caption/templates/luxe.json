@@ -1,16 +1,20 @@
 {
   "name": "luxe",
+  "blend_texture": false,
+  "layout": "hero_pop",
+  "font": "fonts/Montserrat-700-normal.ttf",
+  "support_font": "fonts/Montserrat-700-normal.ttf",
   "keyword": {
     "font": "fonts/Montserrat-900-normal.ttf",
-    "size_ratio": 0.22,
+    "size_ratio": 0.20,
     "max_width_ratio": 0.90,
     "color": "#38BDF8",
-    "uppercase": false,
+    "uppercase": true,
     "y_ratio": 0.18,
     "behind": true,
     "gradient": [
       "#38BDF8",
-      "#0B3550"
+      "#0EA5E9"
     ],
     "stroke": {
       "width": 0.015,
@@ -20,33 +24,32 @@
       "ox": 0.02,
       "oy": 0.04,
       "color": "#000000",
-      "alpha": 0.6
+      "alpha": 0.65
     }
   },
   "support": {
-    "font": "fonts/JosefinSans-700-italic.ttf",
-    "size_ratio": 0.065,
+    "font": "fonts/Montserrat-700-normal.ttf",
+    "size_ratio": 0.048,
     "max_width_ratio": 0.85,
     "color": "#FFFFFF",
     "uppercase": false,
+    "y_ratio": 0.90,
     "behind": false,
-    "gap_ratio": 0.025,
     "stroke": {
-      "width": 0.025,
-      "color": "#081F26"
+      "width": 0.02,
+      "color": "#031522"
     },
     "shadow": {
       "ox": 0.02,
       "oy": 0.03,
       "color": "#000000",
-      "alpha": 0.7
+      "alpha": 0.70
     }
   },
   "animation": {
     "type": "fade_slide",
-    "duration": 0.45,
+    "duration": 0.30,
     "word_by_word": false,
-    "out_duration": 0.3,
-    "slide_ratio": 0.04
+    "out_duration": 0.15
   }
 }
