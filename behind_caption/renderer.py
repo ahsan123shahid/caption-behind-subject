@@ -206,11 +206,11 @@ class CaptionRenderer:
             k_size = self._fit(hero_kw, K["font"], K.get("size_ratio", 0.22), K.get("max_width_ratio", 0.94))
             kimg = self._draw_bold_text(hero_kw, k_size, K)
 
-            # Center Y: positioned so bottom edge just touches/overlaps the head crown
+            # Center Y: positioned around upper-center so subject naturally occludes the middle of it
             if head_y is not None:
-                ky = int(head_y - (kimg.height * 0.32)) + dy
+                ky = int(head_y + 0.06 * self.H) + dy
             else:
-                ky = int(K.get("y_ratio", 0.18) * self.H) + dy
+                ky = int(K.get("y_ratio", 0.25) * self.H) + dy
 
             # Center X:
             # If text is wide (> 60% of frame), center on frame so it fills screen symmetrically
