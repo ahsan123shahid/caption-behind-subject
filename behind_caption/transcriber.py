@@ -3,13 +3,82 @@ from pathlib import Path
 import re
 import whisper
 
-# Biases Whisper to always output English/Latin alphabet (Roman Urdu / Hinglish)
-HINGLISH_PROMPT = (
-    "Transcribe in Roman Urdu and Hinglish using Latin English alphabet only: "
-    "yaar 1 million followers degi ye wali video, 7 ghante se edit kiya, "
-    "agar followers aa gaye to influencer ban jaoon ga, kya kar raha hai bhai, "
-    "real estate is not just about buying houses."
-)
+# Neutral prompting for Whisper without misleading narrative context
+DEFAULT_PROMPT = "Roman Urdu, Hinglish, English speech transcript."
+
+# Common Urdu vocabulary to clean Roman Urdu
+URDU_WORD_MAP = {
+    'نہیں': 'nahi', 'ایک': 'ek', 'کیا': 'kya', 'ہے': 'hai', 'ہیں': 'hain',
+    'آپ': 'aap', 'کا': 'ka', 'کی': 'ki', 'کے': 'ke', 'سے': 'se',
+    'میں': 'mein', 'کو': 'ko', 'نہ': 'na', 'تھا': 'tha', 'تھی': 'thi',
+    'تھے': 'the', 'گا': 'ga', 'گی': 'gi', 'گے': 'ge', 'یہ': 'yeh',
+    'وہ': 'woh', 'پر': 'par', 'اور': 'aur', 'بھی': 'bhi', 'تو': 'to',
+    'کر': 'kar', 'رہا': 'raha', 'رہی': 'rahi', 'رہے': 'rahe', 'ہوں': 'hoon',
+    'ہو': 'ho', 'بھائی': 'bhai', 'یار': 'yaar', 'اس': 'is', 'ان': 'un',
+    'اب': 'ab', 'جب': 'jab', 'تب': 'tab', 'کب': 'kab', 'سب': 'sab',
+    'ساتھ': 'saath', 'بات': 'baat', 'کام': 'kaam', 'لوگ': 'log', 'ویڈیو': 'video',
+    'بڑا': 'bada', 'بڑی': 'badi', 'بڑے': 'bade', 'بہت': 'bohot', 'زیادہ': 'zyada',
+    'کم': 'kam', 'اچھا': 'acha', 'اچھی': 'achi', 'اچھے': 'ache', 'اپنا': 'apna',
+    'سکے': 'sake', 'سکتے': 'sakte', 'سکتی': 'sakti', 'ہزاروں': 'hazaron',
+    'تقریبا': 'taqreeban', 'تکری': 'taqreeban', 'بن': 'ban', 'پہل': 'pehal',
+    'دکھا': 'dikha', 'تکھا': 'dikha', 'چاہتے': 'chahte', 'پروڈکٹ': 'product',
+    'پروڈکٹس': 'products', 'ٹائم': 'time', 'پرائس': 'price', 'اندر': 'andar',
+    'دے': 'de', 'لینے': 'lene', 'لیں': 'lein', 'چلو': 'chalo', 'دیکھتے': 'dekhte'
+}
+
+URDU_CHAR_MAP = {
+    'ا': 'a', 'آ': 'aa', 'ب': 'b', 'پ': 'p', 'ت': 't', 'ٹ': 't', 'ث': 's',
+    'ج': 'j', 'چ': 'ch', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ڈ': 'd', 'ذ': 'z',
+    'ر': 'r', 'ڑ': 'r', 'ز': 'z', 'ژ': 'zh', 'س': 's', 'ش': 'sh', 'ص': 's',
+    'ض': 'z', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
+    'ک': 'k', 'گ': 'g', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ں': 'n', 'و': 'o',
+    'ہ': 'h', 'ھ': 'h', 'ء': '', 'ی': 'i', 'ے': 'e', 'ۂ': 'h', 'ۃ': 't',
+    'ئ': 'i', 'ؤ': 'o'
+}
+
+DEVA_CHAR_MAP = {
+    'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ee', 'उ': 'u', 'ऊ': 'oo', 'ऋ': 'ri',
+    'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au', 'क': 'k', 'ख': 'kh', 'ग': 'g',
+    'घ': 'gh', 'ङ': 'ng', 'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ञ': 'ny',
+    'ट': 't', 'ठ': 'th', 'ड': 'd', 'ढ': 'dh', 'ण': 'n', 'त': 't', 'थ': 'th',
+    'द': 'd', 'ध': 'dh', 'न': 'n', 'प': 'p', 'फ': 'f', 'ब': 'b', 'भ': 'bh',
+    'म': 'm', 'य': 'y', 'र': 'r', 'ल': 'l', 'व': 'v', 'श': 'sh', 'ष': 'sh',
+    'स': 's', 'ह': 'h', 'ा': 'a', 'ि': 'i', 'ी': 'ee', 'ु': 'u', 'ू': 'oo',
+    'ृ': 'ri', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au', '्': '', 'ं': 'n',
+    'ँ': 'n', 'ः': 'h', '़': '', '०': '0', '१': '1', '२': '2', '३': '3',
+    '४': '4', '५': '5', '६': '6', '७': '7', '८': '8', '९': '9'
+}
+
+
+def to_roman(text: str) -> str:
+    """Converts Urdu or Hindi script to clean Latin Roman Urdu / Hinglish."""
+    if not text:
+        return text
+    # Check if text contains non-latin Indic / Arabic characters
+    has_indic = bool(re.search(r'[\u0600-\u06FF\u0900-\u097F]', text))
+    if not has_indic:
+        return text
+
+    words = text.split()
+    roman_words = []
+    for w in words:
+        clean_w = re.sub(r'[^\w]', '', w)
+        if clean_w in URDU_WORD_MAP:
+            roman_words.append(URDU_WORD_MAP[clean_w])
+            continue
+
+        chars = []
+        for ch in w:
+            if ch in URDU_CHAR_MAP:
+                chars.append(URDU_CHAR_MAP[ch])
+            elif ch in DEVA_CHAR_MAP:
+                chars.append(DEVA_CHAR_MAP[ch])
+            else:
+                chars.append(ch)
+        roman_words.append(''.join(chars))
+
+    res = ' '.join(roman_words)
+    return re.sub(r'\s+', ' ', res).strip()
 
 
 def _format_srt_time(seconds: float) -> str:
@@ -25,13 +94,11 @@ def transcribe_video(
     output_srt: str = None,
     model_name: str = "base",
     words_per_cue: int = 3,
-    max_duration: float = 1.6,
-    prompt: str = HINGLISH_PROMPT
+    max_duration: float = 1.6
 ) -> str:
     """
-    Transcribes audio from a video using Whisper AI in Roman Urdu / Hinglish,
-    groups words into snappy subtitle cues with exact timestamps,
-    and auto-tags a prominent hero keyword (*KEYWORD*) for 3D behind-subject effect.
+    Transcribes video audio with Whisper AI, auto-converts Urdu/Hindi to Roman Urdu / Hinglish,
+    creates snappy subtitle cues, and auto-tags hero keywords (*KEYWORD*) for 3D behind-subject effect.
     """
     video = Path(video_path)
     if not output_srt:
@@ -40,42 +107,41 @@ def transcribe_video(
     print(f"[auto-caption] Loading Whisper '{model_name}' model...")
     model = whisper.load_model(model_name)
 
-    # Auto-detect spoken language from audio
-    audio = whisper.load_audio(str(video))
-    audio_sample = whisper.pad_or_trim(audio)
-    mel = whisper.log_mel_spectrogram(audio_sample, n_mels=model.dims.n_mels).to(model.device)
-    _, probs = model.detect_language(mel)
-    detected_lang = max(probs, key=probs.get)
+    print(f"[auto-caption] Transcribing speech from '{video.name}'...")
+    result = model.transcribe(
+        str(video),
+        initial_prompt=DEFAULT_PROMPT,
+        word_timestamps=True
+    )
 
-    # If Urdu/Hindi/Punjabi -> bias towards Hinglish/Roman Urdu Latin alphabet
-    # If English or other -> standard natural transcription
-    if detected_lang in ["ur", "hi", "pa", "sd"]:
-        print(f"[auto-caption] Detected {detected_lang.upper()} audio -> Transcribing in Hinglish / Roman Urdu...")
-        result = model.transcribe(str(video), initial_prompt=prompt, word_timestamps=True)
-    else:
-        print(f"[auto-caption] Detected {detected_lang.upper()} audio -> Transcribing in standard {detected_lang.upper()}...")
-        result = model.transcribe(str(video), word_timestamps=True)
+    detected_lang = result.get("language", "en")
+    print(f"[auto-caption] Detected speech language: {detected_lang.upper()}")
 
-    # Flatten all words with timestamps
+    # Flatten all words with timestamps and transliterate to Roman Urdu if needed
     all_words = []
     for seg in result.get("segments", []):
         if "words" in seg and seg["words"]:
             for w in seg["words"]:
                 word_str = w["word"].strip()
                 if word_str:
-                    all_words.append({
-                        "word": word_str,
-                        "start": float(w["start"]),
-                        "end": float(w["end"])
-                    })
+                    # Transliterate to Roman script if in Urdu / Hindi
+                    roman_w = to_roman(word_str)
+                    if roman_w:
+                        all_words.append({
+                            "word": roman_w,
+                            "start": float(w["start"]),
+                            "end": float(w["end"])
+                        })
         else:
             text = seg.get("text", "").strip()
             if text:
-                all_words.append({
-                    "word": text,
-                    "start": float(seg["start"]),
-                    "end": float(seg["end"])
-                })
+                roman_text = to_roman(text)
+                for w in roman_text.split():
+                    all_words.append({
+                        "word": w,
+                        "start": float(seg["start"]),
+                        "end": float(seg["end"])
+                    })
 
     if not all_words:
         raise RuntimeError("No speech detected in video audio.")
@@ -107,7 +173,7 @@ def transcribe_video(
     for idx, chunk in enumerate(cues, 1):
         c_start = chunk[0]["start"]
         c_end = max(chunk[-1]["end"], c_start + 0.6)
-        
+
         words = [w["word"] for w in chunk]
         clean_words = [re.sub(r"[^\w]", "", w) for w in words]
         best_idx = 0
@@ -131,5 +197,5 @@ def transcribe_video(
     out_path = Path(output_srt)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(srt_lines), encoding="utf-8")
-    print(f"[auto-caption] Successfully generated {len(cues)} auto-synced Hinglish captions -> {output_srt}")
+    print(f"[auto-caption] Successfully generated {len(cues)} auto-synced Roman/Hinglish captions -> {output_srt}")
     return str(out_path)
