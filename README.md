@@ -22,6 +22,7 @@ Built for **Roosh Tech / bolti.ai** task requirements.
 ```text
 behind_caption/
 ├── cli.py             # CLI entrypoint (--video, --srt, --template, --segmenter)
+├── transcriber.py     # Auto Speech-to-Text via Whisper AI & Hero Keyword extraction
 ├── pipeline.py        # Frame-by-frame compositing loop, FFmpeg stream pipe
 ├── renderer.py        # Text layout engine, auto-fitting, pop/slide animations
 ├── segmentation.py    # Swappable segmenter registry (mediapipe, yolo, rembg)
@@ -45,19 +46,26 @@ pip install -r requirements.txt
 
 ## Usage
 
-### 1. Render Dynamic Template
+### 1. Automatic Run (No SRT Needed — Auto Whisper AI)
+Simply pass the video without `--srt`. Whisper AI will automatically transcribe speech, compute exact word timings, tag hero keywords, and render the final video:
+```bash
+python -m behind_caption myvideo.mp4 --template dynamic --out output_dynamic.mp4
+```
+
+### 2. Custom SRT Run
+If you already have a transcribed `.srt` file:
 ```bash
 python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template dynamic --out output_dynamic.mp4
 ```
 
-### 2. Render Luxe Template
+### 3. Render Luxe Template
 ```bash
-python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template luxe --out output_luxe.mp4
+python -m behind_caption myvideo.mp4 --template luxe --out output_luxe.mp4
 ```
 
-### 3. Render All Templates in One Command
+### 4. Render All Templates in One Command
 ```bash
-python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template all --out outputs/
+python -m behind_caption myvideo.mp4 --template all --out outputs/
 ```
 
 ### Options

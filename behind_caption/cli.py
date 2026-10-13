@@ -8,12 +8,21 @@ from .templates import list_templates
 def main():
     ap = argparse.ArgumentParser(description="Caption-behind-subject renderer")
     ap.add_argument("video")
-    ap.add_argument("--srt", required=True)
+    ap.add_argument("--srt", default=None, help="path to .srt file (optional; auto-transcribed via Whisper AI if omitted)")
     ap.add_argument("--template", default="dynamic", help=f"one of {list_templates()} or 'all'")
     ap.add_argument("--out", default="out", help="output .mp4 (single template) or directory (all)")
     ap.add_argument("--segmenter", default="mediapipe", choices=list(REGISTRY))
     ap.add_argument("--smooth", type=float, default=0.5)
     a = ap.parse_args()
+
+    # Automatic Speech-to-Text via Whisper AI if --srt is not provided
+    if not a.srt:
+        from .transcriber import transcribe_video
+        auto_srt = str(Path(a.video).with_suffix(".auto.srt"))
+        print(f"[auto-caption] No --srt provided. Transcribing speech from '{a.video}' via Whisper AI...")
+        a.srt = transcribe_video(a.video, output_srt=auto_srt)
+        print(f"[auto-caption] Using auto-generated SRT: {a.srt}")
+
     if a.template == "all":
         Path(a.out).mkdir(parents=True, exist_ok=True)
         for t in list_templates():
