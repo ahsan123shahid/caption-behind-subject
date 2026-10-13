@@ -40,12 +40,21 @@ def transcribe_video(
     print(f"[auto-caption] Loading Whisper '{model_name}' model...")
     model = whisper.load_model(model_name)
 
-    print(f"[auto-caption] Transcribing speech from '{video.name}' (Hinglish / Roman Urdu mode)...")
-    result = model.transcribe(
-        str(video),
-        initial_prompt=prompt,
-        word_timestamps=True
-    )
+    # Auto-detect spoken language from audio
+    audio = whisper.load_audio(str(video))
+    audio_sample = whisper.pad_or_trim(audio)
+    mel = whisper.log_mel_spectrogram(audio_sample, n_mels=model.dims.n_mels).to(model.device)
+    _, probs = model.detect_language(mel)
+    detected_lang = max(probs, key=probs.get)
+
+    # If Urdu/Hindi/Punjabi -> bias towards Hinglish/Roman Urdu Latin alphabet
+    # If English or other -> standard natural transcription
+    if detected_lang in ["ur", "hi", "pa", "sd"]:
+        print(f"[auto-caption] Detected {detected_lang.upper()} audio -> Transcribing in Hinglish / Roman Urdu...")
+        result = model.transcribe(str(video), initial_prompt=prompt, word_timestamps=True)
+    else:
+        print(f"[auto-caption] Detected {detected_lang.upper()} audio -> Transcribing in standard {detected_lang.upper()}...")
+        result = model.transcribe(str(video), word_timestamps=True)
 
     # Flatten all words with timestamps
     all_words = []
