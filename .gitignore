@@ -9,3 +9,5 @@ models/
 outputs/
 scratch/
 *.pt
+.env
+*.auto.srt
