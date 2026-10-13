@@ -1,7 +1,15 @@
-"""Automatic Speech-to-Text Transcription with Whisper AI & Hero Keyword Tagging."""
+"""Automatic Speech-to-Text Transcription with Whisper AI in Roman Urdu / Hinglish."""
 from pathlib import Path
 import re
 import whisper
+
+# Biases Whisper to always output English/Latin alphabet (Roman Urdu / Hinglish)
+HINGLISH_PROMPT = (
+    "Transcribe in Roman Urdu and Hinglish using Latin English alphabet only: "
+    "yaar 1 million followers degi ye wali video, 7 ghante se edit kiya, "
+    "agar followers aa gaye to influencer ban jaoon ga, kya kar raha hai bhai, "
+    "real estate is not just about buying houses."
+)
 
 
 def _format_srt_time(seconds: float) -> str:
@@ -17,21 +25,27 @@ def transcribe_video(
     output_srt: str = None,
     model_name: str = "base",
     words_per_cue: int = 3,
-    max_duration: float = 1.6
+    max_duration: float = 1.6,
+    prompt: str = HINGLISH_PROMPT
 ) -> str:
     """
-    Transcribes audio from a video using Whisper AI, groups words into snappy subtitle
-    cues with exact timestamps, and auto-tags a prominent hero keyword (*KEYWORD*) for 3D behind-subject effect.
+    Transcribes audio from a video using Whisper AI in Roman Urdu / Hinglish,
+    groups words into snappy subtitle cues with exact timestamps,
+    and auto-tags a prominent hero keyword (*KEYWORD*) for 3D behind-subject effect.
     """
     video = Path(video_path)
     if not output_srt:
-        output_srt = str(video.with_suffix(".srt"))
+        output_srt = str(video.with_suffix(".auto.srt"))
 
     print(f"[auto-caption] Loading Whisper '{model_name}' model...")
     model = whisper.load_model(model_name)
 
-    print(f"[auto-caption] Transcribing audio from '{video.name}'...")
-    result = model.transcribe(str(video), word_timestamps=True)
+    print(f"[auto-caption] Transcribing speech from '{video.name}' (Hinglish / Roman Urdu mode)...")
+    result = model.transcribe(
+        str(video),
+        initial_prompt=prompt,
+        word_timestamps=True
+    )
 
     # Flatten all words with timestamps
     all_words = []
@@ -108,5 +122,5 @@ def transcribe_video(
     out_path = Path(output_srt)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(srt_lines), encoding="utf-8")
-    print(f"[auto-caption] Successfully generated {len(cues)} auto-synced captions -> {output_srt}")
+    print(f"[auto-caption] Successfully generated {len(cues)} auto-synced Hinglish captions -> {output_srt}")
     return str(out_path)
