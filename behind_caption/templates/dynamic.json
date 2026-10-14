@@ -28,8 +28,9 @@
     "size_ratio": 0.055,
     "max_width_ratio": 0.85,
     "color": "#FFFFFF",
+    "active_color": "#FFE600",
     "uppercase": true,
-    "y_ratio": 0.90,
+    "y_ratio": 0.82,
     "behind": false,
     "stroke": {
       "width": 0.03,

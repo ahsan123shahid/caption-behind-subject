@@ -29,11 +29,12 @@
   },
   "support": {
     "font": "fonts/Montserrat-700-normal.ttf",
-    "size_ratio": 0.048,
+    "size_ratio": 0.050,
     "max_width_ratio": 0.85,
     "color": "#FFFFFF",
-    "uppercase": false,
-    "y_ratio": 0.90,
+    "active_color": "#38BDF8",
+    "uppercase": true,
+    "y_ratio": 0.82,
     "behind": false,
     "stroke": {
       "width": 0.02,
