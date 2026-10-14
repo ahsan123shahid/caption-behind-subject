@@ -10,6 +10,69 @@ class Cue:
     start: float
     end: float
     text: str
+    is_hero: bool = False
+    hero_text: str = ""
+    front_text: str = ""
+
+
+COMMON_STOPWORDS = {
+    "a", "an", "the", "in", "on", "at", "to", "for", "of", "with", "is", "are", "am", "was", "were",
+    "be", "been", "being", "have", "has", "had", "do", "does", "did", "and", "or", "but", "if",
+    "this", "that", "these", "those", "it", "its", "you", "your", "he", "she", "we", "they", "me",
+    # Roman Urdu / Hindi stopwords:
+    "hai", "hain", "hoon", "ho", "tha", "thi", "the", "ka", "ki", "ke", "ko", "se", "me", "mein",
+    "par", "pe", "aur", "ya", "yeh", "ye", "woh", "wo", "kar", "karo", "raha", "rahi", "rahe",
+    "gaya", "gayi", "to", "bhi", "hi", "kya", "kyun", "kab", "kahan", "kaise", "ap", "aap", "hum",
+    "main", "meri", "mera", "mere", "degi", "wali", "bhai", "sab"
+}
+
+
+def prepare_cues(cues: list[Cue], hero_interval: int = 3) -> list[Cue]:
+    """
+    Intelligently paces cues between clean Front Subtitles and Behind-the-Subject Hero Keywords.
+    
+    Rules:
+    - Standard Front Subtitles show by default (70-80% of lines).
+    - Hero Keyword pops behind the subject only every 2-4 lines (paced), highlighting impactful words.
+    - Mutual Exclusivity:
+      - If it's a Hero Cue: only the Hero keyword appears behind the subject (front is empty).
+      - If it's a Front Subtitle Cue: the clean subtitle appears in front (behind is empty).
+    """
+    last_hero_idx = -hero_interval
+
+    for idx, cue in enumerate(cues):
+        forced = [f.strip() for f in re.findall(r'\*([^*]+)\*', cue.text) if f.strip()]
+        # Strip asterisks for clean front display
+        plain_text = re.sub(r'\*([^*]+)\*', r'\1', cue.text).strip()
+        plain_text = re.sub(r'\s+', ' ', plain_text)
+        cue.front_text = plain_text
+
+        is_hero_cue = False
+        hero_kw = ""
+
+        if forced:
+            # If user marked words with *...*, pace them with minimum hero_interval gap (e.g. 3 cues)
+            if (idx - last_hero_idx) >= hero_interval:
+                hero_kw = forced[0]
+                is_hero_cue = True
+        else:
+            # Automatic pacing: every `hero_interval` cues
+            if (idx - last_hero_idx) >= hero_interval:
+                words = [re.sub(r'[^\w]', '', w) for w in plain_text.split()]
+                valid_words = [w for w in words if w.lower() not in COMMON_STOPWORDS and len(w) >= 3]
+                if valid_words:
+                    hero_kw = max(valid_words, key=len)
+                    is_hero_cue = True
+
+        if is_hero_cue and hero_kw:
+            cue.is_hero = True
+            cue.hero_text = hero_kw.upper()
+            last_hero_idx = idx
+        else:
+            cue.is_hero = False
+            cue.hero_text = ""
+
+    return cues
 
 
 def _sec(s: str) -> float:
@@ -17,7 +80,7 @@ def _sec(s: str) -> float:
     return int(h) * 3600 + int(m) * 60 + int(sec) + int(frac) / 10 ** len(frac)
 
 
-def parse_srt(path: str) -> list[Cue]:
+def parse_srt(path: str, hero_interval: int = 3) -> list[Cue]:
     raw = open(path, encoding="utf-8-sig").read().replace("\r", "")
     cues = []
     for block in re.split(r"\n\s*\n", raw.strip()):
@@ -29,4 +92,5 @@ def parse_srt(path: str) -> list[Cue]:
         text = " ".join(l.strip() for l in lines[idx + 1:] if l.strip())
         if text:
             cues.append(Cue(_sec(a), _sec(b), text))
-    return sorted(cues, key=lambda c: c.start)
+    sorted_cues = sorted(cues, key=lambda c: c.start)
+    return prepare_cues(sorted_cues, hero_interval=hero_interval)

@@ -236,6 +236,8 @@ def transcribe_video(
         cues.append(curr_chunk)
 
     # Convert word chunks to SRT lines with auto-detected Hero Keyword
+    from .captions import COMMON_STOPWORDS
+    last_tagged_idx = -3
     srt_lines = []
     for idx, chunk in enumerate(cues, 1):
         c_start = chunk[0]["start"]
@@ -243,16 +245,21 @@ def transcribe_video(
 
         words = [w["word"] for w in chunk]
         clean_words = [re.sub(r"[^\w]", "", w) for w in words]
-        best_idx = 0
-        max_len = 0
-        for i, cw in enumerate(clean_words):
-            if len(cw) > max_len:
-                max_len = len(cw)
-                best_idx = i
+
+        should_tag = (idx - last_tagged_idx) >= 3
+        best_i = -1
+        if should_tag:
+            candidates = [
+                (i, len(cw)) for i, cw in enumerate(clean_words)
+                if cw.lower() not in COMMON_STOPWORDS and len(cw) >= 4
+            ]
+            if candidates:
+                best_i = max(candidates, key=lambda x: x[1])[0]
+                last_tagged_idx = idx
 
         tagged_words = []
         for i, w in enumerate(words):
-            if i == best_idx and len(clean_words[i]) >= 3:
+            if i == best_i:
                 clean = clean_words[i].upper()
                 tagged_words.append(f"*{clean}*")
             else:

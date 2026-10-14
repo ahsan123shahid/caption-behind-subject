@@ -178,31 +178,9 @@ class CaptionRenderer:
         K = self.t.get("keyword", {})
         S = self.t.get("support", {})
 
-        # Extract forced hero keyword from *...* markers
-        forced = [f.strip() for f in re.findall(r'\*([^*]+)\*', raw_text) if f.strip()]
-        plain_text = re.sub(r'\*[^*]+\*', '', raw_text).strip()
-        plain_text = re.sub(r'\s+', ' ', plain_text)
-
-        if forced:
-            hero_kw = forced[0]
-            supp_text = plain_text
-        else:
-            words = raw_text.split()
-            if len(words) <= 1:
-                hero_kw = raw_text
-                supp_text = ""
-            else:
-                # Pick longest significant word as hero keyword
-                hero_kw = max(words, key=lambda w: len(_clean(w)))
-                supp_text = " ".join([w for w in words if w != hero_kw])
-
-        if K.get("uppercase", True):
-            hero_kw = hero_kw.upper()
-        if S.get("uppercase", False):
-            supp_text = supp_text.upper()
-
-        # 1. Render Hero Keyword Behind Head
-        if hero_kw:
+        # 1. RENDER HERO KEYWORD BEHIND THE SUBJECT
+        if cue.is_hero and cue.hero_text:
+            hero_kw = cue.hero_text.upper() if K.get("uppercase", True) else cue.hero_text
             k_size = self._fit(hero_kw, K["font"], K.get("size_ratio", 0.22), K.get("max_width_ratio", 0.94))
             kimg = self._draw_bold_text(hero_kw, k_size, K)
 
@@ -213,8 +191,6 @@ class CaptionRenderer:
                 ky = int(K.get("y_ratio", 0.25) * self.H) + dy
 
             # Center X:
-            # If text is wide (> 60% of frame), center on frame so it fills screen symmetrically
-            # Otherwise track speaker's head position
             if kimg.width > int(0.60 * self.W) or head_x is None:
                 kx = self.W // 2
             else:
@@ -222,14 +198,22 @@ class CaptionRenderer:
                 kx = max(margin, min(self.W - margin, int(head_x)))
 
             self._paste(behind_layer, kimg, kx, ky, scale, alpha)
+            # Front layer remains empty when Hero word pops behind
 
-        # 2. Render Support Subtitle in Front at Bottom
-        if supp_text:
-            s_size = self._fit(supp_text, S["font"], S.get("size_ratio", 0.048), S.get("max_width_ratio", 0.85))
-            simg = self._draw_bold_text(supp_text, s_size, S)
-            sy = int(S.get("y_ratio", 0.90) * self.H)
-            sx = self.W // 2
-            self._paste(front_layer, simg, sx, sy, 1.0, alpha)
+        # 2. RENDER NORMAL SUBTITLE IN FRONT AT BOTTOM
+        else:
+            front_text = cue.front_text or raw_text
+            front_text = re.sub(r'\*([^*]+)\*', r'\1', front_text).strip()
+            if S.get("uppercase", False):
+                front_text = front_text.upper()
+
+            if front_text:
+                s_size = self._fit(front_text, S["font"], S.get("size_ratio", 0.052), S.get("max_width_ratio", 0.88))
+                simg = self._draw_bold_text(front_text, s_size, S)
+                sy = int(S.get("y_ratio", 0.88) * self.H)
+                sx = self.W // 2
+                self._paste(front_layer, simg, sx, sy, 1.0, alpha)
+                # Behind layer remains empty when normal subtitle shows in front
 
         return behind_layer, front_layer
 

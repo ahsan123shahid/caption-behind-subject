@@ -60,8 +60,8 @@ def _detect_head_anchor(alpha: np.ndarray, default_ratio: float = 0.20) -> tuple
 
 
 def run(video: str, srt: str, template: str, out: str, segmenter: str = "mediapipe",
-        smooth: float = 0.15, crf: int = 18):
-    tpl, cues, seg = get_template(template), parse_srt(srt), get_segmenter(segmenter)
+        smooth: float = 0.15, crf: int = 18, hero_interval: int = 3):
+    tpl, cues, seg = get_template(template), parse_srt(srt, hero_interval=hero_interval), get_segmenter(segmenter)
     cap = cv2.VideoCapture(video)
     W, H = int(cap.get(3)), int(cap.get(4))
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
