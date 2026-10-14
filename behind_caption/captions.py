@@ -16,14 +16,20 @@ class Cue:
 
 
 COMMON_STOPWORDS = {
+    # English stopwords
     "a", "an", "the", "in", "on", "at", "to", "for", "of", "with", "is", "are", "am", "was", "were",
     "be", "been", "being", "have", "has", "had", "do", "does", "did", "and", "or", "but", "if",
     "this", "that", "these", "those", "it", "its", "you", "your", "he", "she", "we", "they", "me",
-    # Roman Urdu / Hindi stopwords:
+    "my", "mine", "him", "her", "us", "them", "not", "just", "about", "from", "by", "as",
+    # Roman Urdu / Hindi stopwords & common auxiliary verbs / pronouns
     "hai", "hain", "hoon", "ho", "tha", "thi", "the", "ka", "ki", "ke", "ko", "se", "me", "mein",
     "par", "pe", "aur", "ya", "yeh", "ye", "woh", "wo", "kar", "karo", "raha", "rahi", "rahe",
-    "gaya", "gayi", "to", "bhi", "hi", "kya", "kyun", "kab", "kahan", "kaise", "ap", "aap", "hum",
-    "main", "meri", "mera", "mere", "degi", "wali", "bhai", "sab"
+    "gaya", "gayi", "gaye", "to", "toh", "bhi", "hi", "kya", "kyun", "kab", "kahan", "kaise",
+    "ap", "aap", "hum", "main", "maine", "meri", "mera", "mere", "degi", "wali", "wale", "wala",
+    "bhai", "sab", "tu", "agar", "aane", "lagata", "lagate", "lagati", "lagaye", "lagaya",
+    "hoga", "hogi", "honge", "karta", "karti", "karte", "kartein", "banae", "banaye", "nahi",
+    "nahin", "mat", "let", "tab", "kahin", "shabd", "saath", "hota", "hoti", "hote", "kuch",
+    "sirf", "ab", "jab", "phir", "kyon", "kise", "unka", "unki", "unke", "iska", "iski", "iske"
 }
 
 
@@ -52,14 +58,15 @@ def prepare_cues(cues: list[Cue], hero_interval: int = 3) -> list[Cue]:
 
         if forced:
             # If user marked words with *...*, pace them with minimum hero_interval gap (e.g. 3 cues)
-            if (idx - last_hero_idx) >= hero_interval:
-                hero_kw = forced[0]
+            candidate = forced[0]
+            if (idx - last_hero_idx) >= hero_interval and candidate.lower() not in COMMON_STOPWORDS and len(candidate) >= 4:
+                hero_kw = candidate
                 is_hero_cue = True
         else:
             # Automatic pacing: every `hero_interval` cues
             if (idx - last_hero_idx) >= hero_interval:
                 words = [re.sub(r'[^\w]', '', w) for w in plain_text.split()]
-                valid_words = [w for w in words if w.lower() not in COMMON_STOPWORDS and len(w) >= 3]
+                valid_words = [w for w in words if w.lower() not in COMMON_STOPWORDS and len(w) >= 4]
                 if valid_words:
                     hero_kw = max(valid_words, key=len)
                     is_hero_cue = True

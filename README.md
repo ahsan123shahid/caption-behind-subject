@@ -23,6 +23,7 @@ Built for **Roosh Tech / bolti.ai** task requirements.
 behind_caption/
 ├── cli.py             # CLI entrypoint (--video, --srt, --template, --segmenter)
 ├── transcriber.py     # Auto Speech-to-Text via Whisper AI & Hero Keyword extraction
+├── bolti.py           # bolti.ai / Kaizynn project JSON -> SRT (keeps emphasis marks)
 ├── pipeline.py        # Frame-by-frame compositing loop, FFmpeg stream pipe
 ├── renderer.py        # Text layout engine, auto-fitting, pop/slide animations
 ├── segmentation.py    # Swappable segmenter registry (mediapipe, yolo, rembg)
@@ -66,12 +67,23 @@ If you already have a transcribed `.srt` file:
 python -m behind_caption myvideo.mp4 --srt samples/Video.srt --template dynamic --out output_dynamic.mp4
 ```
 
-### 3. Render Luxe Template
+### 3. bolti.ai / Kaizynn JSON Transcript Run
+Already have the project JSON exported from bolti.ai / Kaizynn (`{"project": {"transcript": [...], "clips": [...]}}`)? Feed it straight in — word timings are preserved, the preset's caption clips become the cue boundaries, and every word flagged `emphasis: true` is wrapped in `*asterisks*` as a Hero Keyword:
+```bash
+python -m behind_caption myvideo.mp4 --srt samples/bolti_transcript.json --template dynamic --out output_dynamic.mp4
+```
+Or only export the SRT:
+```bash
+python -m behind_caption.bolti samples/bolti_transcript.json -o samples/bolti_transcript.srt
+```
+If the payload has no `clips` array, cues are re-chunked with the auto-transcriber rhythm (`--words-per-cue`, `--max-duration`); add `--plain` to skip the `*hero*` marks.
+
+### 4. Render Luxe Template
 ```bash
 python -m behind_caption myvideo.mp4 --template luxe --out output_luxe.mp4
 ```
 
-### 4. Render All Templates in One Command
+### 5. Render All Templates in One Command
 ```bash
 python -m behind_caption myvideo.mp4 --template all --out outputs/
 ```

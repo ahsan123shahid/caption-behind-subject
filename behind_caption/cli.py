@@ -16,6 +16,13 @@ def main():
     ap.add_argument("--hero-interval", type=int, default=3, help="pace behind-the-subject hero words every N lines (default: 3)")
     a = ap.parse_args()
 
+    # bolti.ai / Kaizynn project JSON exports can be used directly as the cue source
+    if a.srt and a.srt.lower().endswith(".json"):
+        from .bolti import convert as convert_bolti_json
+        print(f"[bolti-json] Converting bolti project transcript '{a.srt}' to SRT...")
+        a.srt = convert_bolti_json(a.srt)
+        print(f"[bolti-json] Using cues from: {a.srt}")
+
     # Automatic Speech-to-Text via Whisper AI if --srt is not provided
     if not a.srt:
         from .transcriber import transcribe_video

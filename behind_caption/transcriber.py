@@ -187,8 +187,8 @@ def _transcribe_local(video_path: Path, model_name: str = "base") -> list:
 def transcribe_video(
     video_path: str,
     output_srt: str = None,
-    words_per_cue: int = 3,
-    max_duration: float = 1.6
+    words_per_cue: int = 4,
+    max_duration: float = 2.0
 ) -> str:
     """
     Main transcription entrypoint:
@@ -213,7 +213,7 @@ def transcribe_video(
     if not all_words:
         raise RuntimeError("No speech detected in video audio.")
 
-    # Group words into short, rhythmic subtitle cues
+    # Group words into clean, rhythmic subtitle cues (avoiding 1-word orphan fragments)
     cues = []
     curr_chunk = []
     chunk_start = 0.0
@@ -225,7 +225,7 @@ def transcribe_video(
         else:
             dur = w["end"] - chunk_start
             pause = w["start"] - curr_chunk[-1]["end"]
-            if len(curr_chunk) >= words_per_cue or dur >= max_duration or pause > 0.45:
+            if (len(curr_chunk) >= words_per_cue or dur >= max_duration or pause > 0.60) and (len(curr_chunk) >= 2 or dur >= 0.9):
                 cues.append(curr_chunk)
                 curr_chunk = [w]
                 chunk_start = w["start"]
@@ -233,7 +233,10 @@ def transcribe_video(
                 curr_chunk.append(w)
 
     if curr_chunk:
-        cues.append(curr_chunk)
+        if len(curr_chunk) == 1 and cues:
+            cues[-1].extend(curr_chunk)
+        else:
+            cues.append(curr_chunk)
 
     # Convert word chunks to SRT lines with auto-detected Hero Keyword
     from .captions import COMMON_STOPWORDS
